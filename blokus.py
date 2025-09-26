@@ -38,21 +38,23 @@ def print_board(board):
 
 #bloques
 shapes = [
-    {(0,0)},                 # monomino
-    {(0,0), (1,0)},          # dominó
-    {(0,0), (1,0), (0,1)}    # L
+    {(0,0)},#0
+    {(0,0), (1,0)},#1
+    {(0,0), (1,0), (0,1), (2,0)},#2
+    {(0,0), (1,0), (2,0)},#3
+    {(0,0), (1,0), (1,1)},#4
+    {(0,0), (0,1), (1,0), (1,1)},#5
+    {(1, 0), (0, 1), (2, 0), (0, 0)}#6
 ]
-
-
+print(shapes[6] == shapes[2])
 
 def cell_free(board,x,y):
-    if board[x][y] == -1:
+    if board[y][x] == -1:
         return True
     else:
         return False
 
-
-#devuelve true si esta dentro de los limites de el tablero desde 0 hasta 19
+#devuelve true si está dentro de los limites de el tablero desde 0 hasta 19
 def in_bounds(x, y):
     if (x >= 0 and x < GRID_SIZE) and (y >= 0 and y < GRID_SIZE):
         return True
@@ -71,13 +73,51 @@ def can_place(board, top_left, shape):
 
 def place(board, top_left, shape, player_id):
     x0, y0 = top_left
-    if can_place(board, top_left, shape) == True:
+    if can_place(board, top_left, shape):
+
         for (dx, dy) in shape:
             x = x0 + dx
             y = y0 + dy
             board[y][x] = player_id
 
-place(b, (5, 1), shapes[2], 1)
+
+place(b, (0, 4), shapes[2], 1)
+
+#print(b[2][3], b[2][4], b[3][3], b[3][4])
+
+#print(cell_free(b, 15, 1))
+def rotate(shape):
+    rotated = set()
+
+    # fórmula de rotación (x,y) -> (y,-x)
+    for (x, y) in shape:
+        nuevo = (y, -x)
+        rotated.add(nuevo)
+
+    # normalizar para que no queden negativos
+    normalized = set()
+    minx = min(x for (x,y) in rotated)
+    miny = min(y for (x,y) in rotated)
+
+    for (x, y) in rotated:
+        ajustado = (x - minx, y - miny)
+        normalized.add(ajustado)
+
+    # devolver la pieza ya rotada y normalizada
+    return normalized
+
+print(f"{rotate(shapes[2])}")
+print(f"{shapes[2]}")
+
+
+L_rotada = rotate(shapes[2])
+
+
+place(b, (0, 0), L_rotada, 1)
+
+
+
+
 #print(f" can place ?? {can_place(b, (5,1), shapes[0])}")
 #print(f"dentro de to?  {in_bounds(0, 20)}")
 #print(f"dentro de to?  {in_bounds(19, 19)}")
