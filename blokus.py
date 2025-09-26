@@ -14,9 +14,9 @@ def make_board():
 
 
 b = make_board()
-print(len(b), len(b[0]))
+#print(len(b), len(b[0]))
 
-b = make_board()
+
 
 
 def print_board(board):
@@ -44,9 +44,8 @@ shapes = [
     {(0,0), (1,0), (2,0)},#3
     {(0,0), (1,0), (1,1)},#4
     {(0,0), (0,1), (1,0), (1,1)},#5
-    {(1, 0), (0, 1), (2, 0), (0, 0)}#6
 ]
-print(shapes[6] == shapes[2])
+#print(shapes[6] == shapes[2])
 
 def cell_free(board,x,y):
     if board[y][x] == -1:
@@ -69,32 +68,32 @@ def can_place(board, top_left, shape):
 
         if not in_bounds(x, y) or not cell_free(board, x, y):
             return False
-        return True
+    return True
 
 def place(board, top_left, shape, player_id):
     x0, y0 = top_left
     if can_place(board, top_left, shape):
-
         for (dx, dy) in shape:
             x = x0 + dx
             y = y0 + dy
             board[y][x] = player_id
+        return True
+    else:
+        print("No se pudo colocar")
 
 
-place(b, (0, 4), shapes[2], 1)
 
 #print(b[2][3], b[2][4], b[3][3], b[3][4])
 
 #print(cell_free(b, 15, 1))
 def rotate(shape):
     rotated = set()
-
-    # fórmula de rotación (x,y) -> (y,-x)
+    # formula de rotación (x,y) -> (y,-x) 90 grados
     for (x, y) in shape:
         nuevo = (y, -x)
         rotated.add(nuevo)
 
-    # normalizar para que no queden negativos
+    # normalizar para que no queden negativos y llevar a 0,0
     normalized = set()
     minx = min(x for (x,y) in rotated)
     miny = min(y for (x,y) in rotated)
@@ -102,19 +101,51 @@ def rotate(shape):
     for (x, y) in rotated:
         ajustado = (x - minx, y - miny)
         normalized.add(ajustado)
-
+    #print(normalized)
     # devolver la pieza ya rotada y normalizada
     return normalized
 
-print(f"{rotate(shapes[2])}")
-print(f"{shapes[2]}")
+#print(f"{rotate(shapes[2])}")
+#print(f"{shapes[2]}")
+
+def normalize(shape):
+    normalizedR = set()
+    minx = min(x for (x, y) in shape)
+    miny = min(y for (x, y) in shape)
+
+    for (x, y) in shape:
+        ajustado = (x - minx, y - miny)
+        normalizedR.add(ajustado)
+    return normalizedR
 
 
-L_rotada = rotate(shapes[2])
+def reflectX(shape):
+    reflected = set()
+    # fórmula de reflejo en el eje X: (x,y) -> (-x,y)
+    for (x, y) in shape:
+        nuevo = (-x, y)
+        reflected.add(nuevo)
+    # normalizar para que no queden negativos y llevar a 0,0
+    return normalize(reflected)
 
 
-place(b, (0, 0), L_rotada, 1)
+def reflectY(shape):
+    reflected = set()
+    # formula de reflejo en el eje y (x,y) -> (-x,y)
+    for (x, y) in shape:
+        nuevo = (x, -y)
+        reflected.add(nuevo)
+    #print(reflected)
+    # normalizar para que no queden negativos y llevar a 0,0
+    return normalize(reflected)
 
+
+
+#print(reflect(shapes[2]))
+place(b, (0, 0), shapes[2], 0)
+place(b, (4, 0), rotate(shapes[2]), 1)
+place(b, (6, 0), reflectX(shapes[2]), 2)
+place(b, (10, 0), reflectY(shapes[2]), 2)
 
 
 
