@@ -36,7 +36,7 @@ def print_board(board):
         #print(" ".join((str(celda).rjust(2) if celda != -1 else " .") for celda in fila))
 
 
-#bloques
+#bloques  offset
 shapes = [
     {(0,0)},#0
     {(0,0), (1,0)},#1
@@ -61,18 +61,48 @@ def in_bounds(x, y):
         return False
 
 
-def can_place(board, top_left, shape):
+def can_place(board, top_left, shape, player_id, first_move=False):
+
+    #al lado
+    beside = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+    #diagonales
+    diag = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
+    corner_ok = False
+
     for (dx, dy) in shape:
         x = top_left[0] + dx
         y = top_left[1] + dy
 
+
         if not in_bounds(x, y) or not cell_free(board, x, y):
+            print("Falla bounds/libre en:", (x, y), "valor:", (board[y][x] if in_bounds(x,y) else None))
             return False
+
+        #si tiene una al lado de tu mismo color
+        for (ox, oy) in beside:
+            nx, ny = x + ox, y + oy
+            if in_bounds(nx, ny) and board[ny][nx] == player_id:
+                print("Falla por LADO con tu color en:", (nx, ny))
+                return False
+        #validando si esta de esquina a esquina con tu jugaodr
+        for (dx2, dy2) in diag:
+            nx, ny = x + dx2, y + dy2
+            if in_bounds(nx, ny) and board[ny][nx] == player_id:
+                corner_ok = True
+    if not first_move and not corner_ok:
+        print("Falla por NO ESQUINA con tu color")
+        return False
+
     return True
 
-def place(board, top_left, shape, player_id):
+
+
+
+
+
+def place(board, top_left, shape, player_id, first_move=False):
     x0, y0 = top_left
-    if can_place(board, top_left, shape):
+    if can_place(board, top_left, shape, player_id, first_move=first_move):
         for (dx, dy) in shape:
             x = x0 + dx
             y = y0 + dy
@@ -80,6 +110,8 @@ def place(board, top_left, shape, player_id):
         return True
     else:
         print("No se pudo colocar")
+        return False
+
 
 
 
@@ -92,6 +124,7 @@ def rotate(shape):
     for (x, y) in shape:
         nuevo = (y, -x)
         rotated.add(nuevo)
+
 
     # normalizar para que no queden negativos y llevar a 0,0
     normalized = set()
@@ -142,10 +175,12 @@ def reflectY(shape):
 
 
 #print(reflect(shapes[2]))
-place(b, (0, 0), shapes[2], 0)
-place(b, (4, 0), rotate(shapes[2]), 1)
-place(b, (6, 0), reflectX(shapes[2]), 2)
-place(b, (10, 0), reflectY(shapes[2]), 2)
+place(b, (0,0), shapes[2], 1, first_move=True)
+#place(b, (3,1), rotate(shapes[4]), 1)
+#place(b, (5,2), rotate(shapes[1]), 1)
+
+#place(b, (6, 0), reflectX(shapes[2]), 2)
+#place(b, (10, 0), reflectY(shapes[2]), 2)
 
 
 
