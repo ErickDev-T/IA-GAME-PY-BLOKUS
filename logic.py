@@ -37,6 +37,9 @@ PLAYER_CORNERS = {
     4: (GRID_SIZE-1, 0),        # arriba-derecha
 }
 
+
+
+
 #bloques  offset
 shapes = [
     {(0,0)},#0
@@ -62,29 +65,30 @@ def in_bounds(x, y):
         return False
 
 
-def can_place(board, top_left, shape, player_id, first_move=False):
+def can_place(board, starting_point, shape, player_id, first_move=False):
     beside = [(1, 0), (-1, 0), (0, 1), (0, -1)]
     diag = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
     corner_ok = False
-    x0, y0 = top_left
+    x0, y0 = starting_point
 
-    # Si es el primer movimiento, debe cubrir la esquina asignada al jugador
     required_corner = PLAYER_CORNERS.get(player_id)
     covers_required_corner = False
 
     for (dx, dy) in shape:
         x, y = x0 + dx, y0 + dy
 
+        #si la celda es valida (dentro de el tablero y libre)
         if not in_bounds(x, y) or not cell_free(board, x, y):
-            # Evita index error cuando está fuera de rango
+            #  operador ternario
             val = board[y][x] if in_bounds(x, y) else None
-            #print("Falla bounds/libre en:", (x, y), "valor:", val)
+            #print("falla libre en:", (x, y), "valor:", val)
             return False
 
+        #primer movimiento
         if first_move and required_corner and (x, y) == required_corner:
             covers_required_corner = True
 
-        # Prohibido tocar por lado una pieza propia
+        # prohibido tocar por lado una pieza propia
         for (ox, oy) in beside:
             nx, ny = x + ox, y + oy
             if in_bounds(nx, ny) and board[ny][nx] == player_id:
@@ -108,9 +112,9 @@ def can_place(board, top_left, shape, player_id, first_move=False):
 
     return True
 
-def place(board, top_left, shape, player_id, first_move=False):
-    x0, y0 = top_left
-    if can_place(board, top_left, shape, player_id, first_move=first_move):
+def place(board, starting_point, shape, player_id, first_move=False):
+    x0, y0 = starting_point
+    if can_place(board, starting_point, shape, player_id, first_move=first_move):
         for (dx, dy) in shape:
             x = x0 + dx
             y = y0 + dy
@@ -120,35 +124,6 @@ def place(board, top_left, shape, player_id, first_move=False):
         #print("No se pudo colocar")
         return False
 
-
-
-
-
-#print(b[2][3], b[2][4], b[3][3], b[3][4])
-
-#print(cell_free(b, 15, 1))
-def rotate(shape):
-    rotated = set()
-    # formula de rotación (x,y) -> (y,-x) 90 grados
-    for (x, y) in shape:
-        nuevo = (y, -x)
-        rotated.add(nuevo)
-
-
-    # normalizar para que no queden negativos y llevar a 0,0
-    normalized = set()
-    minx = min(x for (x,y) in rotated)
-    miny = min(y for (x,y) in rotated)
-
-    for (x, y) in rotated:
-        ajustado = (x - minx, y - miny)
-        normalized.add(ajustado)
-    #print(normalized)
-    # devolver la pieza ya rotada y normalizada
-    return normalized
-
-#print(f"{rotate(shapes[2])}")
-#print(f"{shapes[2]}")
 
 def normalize(shape):
     normalizedR = set()
@@ -161,9 +136,28 @@ def normalize(shape):
     return normalizedR
 
 
+#print(b[2][3], b[2][4], b[3][3], b[3][4])
+
+#print(cell_free(b, 15, 1))
+def rotate(shape):
+    rotated = set()
+    # formula de rotacion (x,y) -> (y,-x) 90 grados
+    for (x, y) in shape:
+        nuevo = (y, -x)
+        rotated.add(nuevo)
+
+
+
+    # devolver la pieza ya rotada y normalizada
+    return normalize(rotated)
+
+#print(f"{rotate(shapes[2])}")
+#print(f"{shapes[2]}")
+
+
 def reflectX(shape):
     reflected = set()
-    # fórmula de reflejo en el eje X: (x,y) -> (-x,y)
+    # reflejo en eje X: (x, y) -> (x, -y)
     for (x, y) in shape:
         nuevo = (-x, y)
         reflected.add(nuevo)
@@ -173,7 +167,7 @@ def reflectX(shape):
 
 def reflectY(shape):
     reflected = set()
-    # formula de reflejo en el eje y (x,y) -> (-x,y)
+    # reflejo en eje Y: (x, y) -> (-x, y))
     for (x, y) in shape:
         nuevo = (x, -y)
         reflected.add(nuevo)
@@ -197,10 +191,7 @@ def all_orientations(shape):
     return lista
 
 
-
-
-
-# place(b, (8,1), shapes[2], 1)
+#place(b, (0,0), shapes[2], 1)
 # place(b, (0,1), reflectX(shapes[2]), 1)
 
 # place(b, (4,1), reflectY(shapes[2]), 1)
@@ -220,7 +211,7 @@ def all_orientations(shape):
 
 
 #print(reflect(shapes[2]))
-#place(b, (0,0), shapes[2], 1, first_move=True)
+#place(b, (0,0), shapes[1], 1, first_move=True)
 #place(b, (GRID_SIZE-1, GRID_SIZE-1), shapes[0], 2, first_move=True)
 #place(b, (0, GRID_SIZE-1), shapes[0], 3, first_move=True)
 #place(b, (GRID_SIZE-1, 0), shapes[0], 4, first_move=True)
@@ -247,4 +238,4 @@ def all_orientations(shape):
 
 
 
-#print_board(b)
+print_board(b)
