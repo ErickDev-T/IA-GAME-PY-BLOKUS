@@ -7,8 +7,17 @@ board = make_board()
 current_player = 1
 first_move = {1: True, 2: True, 3: True, 4: True}
 
-# pieza base
-base_shape = shapes[2]
+PIECE_IDS = list(shapes.keys())  # o un orden específico que tú decidas
+selected_piece_id = "I3"         # elige una inicial válida
+
+try:
+    selected_piece_idx = PIECE_IDS.index(selected_piece_id)
+except ValueError:
+    selected_piece_idx = 0
+    selected_piece_id = PIECE_IDS[selected_piece_idx]
+
+orientaciones = all_orientations(shapes[selected_piece_id])
+orient_idx = 0
 
 CELL = 25
 MARGIN = 2
@@ -37,8 +46,6 @@ def color_of(val):
     else:
         return (0, 0, 0)
 
-orientaciones = all_orientations(base_shape)
-orient_idx = 0
 
 
 def mouse_to_cell(mx, my, GRID_SIZE, CELL, MARGIN):
@@ -85,10 +92,6 @@ def draw_shadow(pantalla, overlay, board, mx, my, orientaciones, orient_idx, cur
     pantalla.blit(overlay, (0, 0))
 
 
-
-
-
-
 clock = pygame.time.Clock()
 
 running = True
@@ -102,6 +105,18 @@ while running:
                 orient_idx = (orient_idx + 1) % len(orientaciones)
             elif event.key in (K_LEFT, K_a):
                 orient_idx = (orient_idx - 1) % len(orientaciones)
+
+            elif event.key == K_UP:
+                selected_piece_idx = (selected_piece_idx - 1) % len(PIECE_IDS)
+                selected_piece_id = PIECE_IDS[selected_piece_idx]
+                orientaciones = all_orientations(shapes[selected_piece_id])
+                orient_idx = 0
+
+            elif event.key == K_DOWN:
+                selected_piece_idx = (selected_piece_idx + 1) % len(PIECE_IDS)
+                selected_piece_id = PIECE_IDS[selected_piece_idx]
+                orientaciones = all_orientations(shapes[selected_piece_id])
+                orient_idx = 0
 #                                              boton izquierdo del mouse
         elif event.type == MOUSEBUTTONDOWN and event.button == 1:
             mx, my = pygame.mouse.get_pos()
@@ -133,6 +148,8 @@ while running:
     #que se dibuje tod0 en pantalla
     pygame.display.flip()
     clock.tick(60)
+
+
 
 pygame.quit()
 sys.exit()

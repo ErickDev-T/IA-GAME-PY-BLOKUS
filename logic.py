@@ -37,18 +37,39 @@ PLAYER_CORNERS = {
     4: (GRID_SIZE-1, 0),        # arriba-derecha
 }
 
-
-
-
 #bloques  offset
-shapes = [
-    {(0,0)},#0
-    {(0,0), (1,0)},#1
-    {(0,0), (1,0), (0,1), (2,0)},#2
-    {(0,0), (1,0), (2,0)},#3
-    {(0,0), (1,0), (1,1)},#4
-    {(0,0), (0,1), (1,0), (1,1)},#5
-]
+shapes = {
+    # Monomino
+    "I1": {(0,0)},
+
+    # Domino
+    "I2": {(0,0), (1,0)},
+
+    # Triominos
+    "I3": {(0,0), (1,0), (2,0)},                  # línea de 3
+    "L3": {(0,0), (1,0), (1,1)},                  # L de 3
+
+    # Tetrominos
+    "O4": {(0,0), (1,0), (0,1), (1,1)},           # cuadrado
+    "I4": {(0,0), (1,0), (2,0), (3,0)},           # línea de 4
+    "T4": {(0,0), (1,0), (2,0), (1,1)},           # T
+    "L4": {(0,0), (0,1), (0,2), (1,0)},           # L de 4
+    "S4": {(1,0), (2,0), (0,1), (1,1)},           # S/Z de 4
+
+    # Pentominos
+    "I5": {(0,0), (1,0), (2,0), (3,0), (4,0)},    # línea de 5
+    "L5": {(0,0), (0,1), (0,2), (0,3), (1,0)},    # L de 5
+    "N5": {(1,0), (2,0), (0,1), (1,1), (0,2)},    # N de 5
+    "P5": {(0,0), (1,0), (0,1), (1,1), (0,2)},    # P
+    "T5": {(0,0), (1,0), (2,0), (1,1), (1,2)},    # T de 5
+    "U5": {(0,0), (2,0), (0,1), (1,1), (2,1)},    # U
+    "V5": {(0,0), (0,1), (0,2), (1,2), (2,2)},    # V
+    "W5": {(0,0), (0,1), (1,1), (1,2), (2,2)},    # W
+    "X5": {(1,0), (0,1), (1,1), (2,1), (1,2)},    # X
+    "Y5": {(0,0), (1,0), (2,0), (3,0), (1,1)},    # Y
+    "Z5": {(0,0), (1,0), (1,1), (2,1), (2,2)},    # Z
+    "F5": {(1,0), (0,1), (1,1), (1,2), (2,2)}     # F
+}
 #print(shapes[6] == shapes[2])
 
 def cell_free(board,x,y):
@@ -135,7 +156,6 @@ def normalize(shape):
         normalizedR.add(ajustado)
     return normalizedR
 
-
 #print(b[2][3], b[2][4], b[3][3], b[3][4])
 
 #print(cell_free(b, 15, 1))
@@ -157,9 +177,8 @@ def rotate(shape):
 
 def reflectX(shape):
     reflected = set()
-    # reflejo en eje X: (x, y) -> (x, -y)
     for (x, y) in shape:
-        nuevo = (-x, y)
+        nuevo = (x, -y)
         reflected.add(nuevo)
     # normalizar para que no queden negativos y llevar a 0,0
     return normalize(reflected)
@@ -167,30 +186,33 @@ def reflectX(shape):
 
 def reflectY(shape):
     reflected = set()
-    # reflejo en eje Y: (x, y) -> (-x, y))
     for (x, y) in shape:
-        nuevo = (x, -y)
+        nuevo = (-x, y)
         reflected.add(nuevo)
     #print(reflected)
     # normalizar para que no queden negativos y llevar a 0,0
     return normalize(reflected)
+L4 = {(0,0), (0,1), (0,2), (1,0)}
 
 def all_orientations(shape):
-    base = shape
-
+    orig = normalize(shape)
+    base = orig
     orientations = set()
-
     for _ in range(4):
         orientations.add(frozenset(base))
-        orientations.add(frozenset(reflectX(base)))
-        orientations.add(frozenset(reflectY(base)))
         base = rotate(base)
+    print("A", len(orientations))
 
+    ref = reflectX(orig)
+    for _ in range(4):
+        orientations.add(frozenset(ref))
+        ref = rotate(ref)
     lista = [set(fs) for fs in orientations]
-    print(lista)
+    print("TOTAL", len(orientations))
+
     return lista
 
-
+print(len(all_orientations(L4)))
 #place(b, (0,0), shapes[2], 1)
 # place(b, (0,1), reflectX(shapes[2]), 1)
 
@@ -238,4 +260,4 @@ def all_orientations(shape):
 
 
 
-print_board(b)
+#print_board(b)
