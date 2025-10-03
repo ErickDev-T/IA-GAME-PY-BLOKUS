@@ -1,5 +1,5 @@
 # engine.py
-from logic import make_board, GRID_SIZE
+from logic import make_board
 
 class GameEngine:
     def __init__(self, players, shapes):
@@ -44,3 +44,6 @@ class GameEngine:
 
     def has_used_piece(self, pid, piece_id):
         return piece_id in self.used_pieces.get(pid, set())
+
+
+
