@@ -39,18 +39,17 @@ blanco = (255, 255, 255)
 
 
 def build_available_shapes(pid):
-    # 1) Crear contenedor vacío
+
     available_shapes = []
-    # 2) Recorrer TODAS las piezas posibles del juego
+    # recorrer todas las piezas posibles del juego
     for piece_id in PIECE_IDS:
-        # 3) Consultar al engine si ESTE jugador ya usó esa pieza
+        # consultar al engine si ESTE jugador ya usó esa pieza
         alreadyUse = engine.has_used_piece(pid, piece_id)
 
-        # 4) Si NO la ha usado, la agregamos a la lista de disponibles
+        #si no la ha usado la agregamos a la lista de disponibles
         if not alreadyUse:
             available_shapes.append(piece_id)
-
-        # 5) Devolver la lista resultante
+        #  devolver la lista resultante
     return available_shapes
 
 
@@ -122,8 +121,6 @@ def draw_shadow(pantalla, overlay, board, mx, my, orientaciones, orient_idx, pid
     pantalla.blit(overlay, (0, 0))
 
 
-
-
 clock = pygame.time.Clock()
 
 running = True
@@ -144,51 +141,49 @@ while running:
             running = False
 
         elif event.type == KEYDOWN:
-            # Rotar orientación de la pieza actual
+            # rotar orientacion de la pieza actual
             if event.key in (K_RIGHT, K_d):
                 if orientaciones:
                     orient_idx = (orient_idx + 1) % len(orientaciones)
             elif event.key in (K_LEFT, K_a):
                 if orientaciones:
                     orient_idx = (orient_idx - 1) % len(orientaciones)
-            # Cambiar de pieza (arriba/abajo): SIEMPRE sobre AVAILABLE_SHAPES
+            # cambiar de pieza sobre AVAILABLE_SHAPES
             elif event.key in (K_UP, K_DOWN):
                 pid_now = engine.get_current_player()
-                # Siempre reconstruye la lista de disponibles del jugador actual
+                # siempre reconstruye la lista de disponibles del jugador actual
                 AVAILABLE_SHAPES = build_available_shapes(pid_now)
 
                 if not AVAILABLE_SHAPES:
-                    # No hay nada para seleccionar
+                    # no hay nada para seleccionar
                     selected_piece_idx = -1
                     selected_piece_id = None
                     orientaciones = []
                     orient_idx = 0
-                    print(f"[INFO] P{pid_now} no tiene piezas disponibles.")
+                    print(f" P{pid_now} no tiene piezas disponibles")
                 else:
-                    # Asegura que el índice esté dentro de rango; si no, arranca en 0
+                    # asegura que el indice esté dentro de rango si n arranca en 0
                     if 'selected_piece_idx' not in globals() or selected_piece_idx < 0 or selected_piece_idx >= len(
                             AVAILABLE_SHAPES):
                         selected_piece_idx = 0
-                    # Muee el índice según la tecla
                     step = -1 if event.key == K_UP else 1
-                    # Repite hasta encontrar una pieza NO usada (o dar la vuelta completa)
+                    # repite hasta encontrar una pieza no usada
                     turns = 0
                     while turns < len(AVAILABLE_SHAPES):
                         selected_piece_idx = (selected_piece_idx + step) % len(AVAILABLE_SHAPES)
                         cand_id = AVAILABLE_SHAPES[selected_piece_idx]
-                        # Doble seguro: aunque AVAILABLE_SHAPES ya filtra, verificamos contra el engine
+
                         if not engine.has_used_piece(pid_now, cand_id):
                             selected_piece_id = cand_id
                             orientaciones = all_orientations(shapes[selected_piece_id])
                             orient_idx = 0
-                            print(f"[DBG] Selección -> id {selected_piece_id} (idx {selected_piece_idx})")
+                            print(f"id {selected_piece_id} (idx {selected_piece_idx})")
                             break
                         turns += 1
 
-                    # Si por alguna razón todas resultan usadas (no debería), resetea
+
 
                     if turns >= len(AVAILABLE_SHAPES):
-                        print("[WARN] Todas las piezas navegables resultaron usadas; reseteando selección.")
                         selected_piece_idx = -1
                         selected_piece_id = None
                         orientaciones = []
@@ -209,18 +204,13 @@ while running:
                         if engine.is_first_move(pid):
                             engine.mark_first_move_done(pid)
 
-                        # (Opcional) si mantienes lista local, puedes sacar la pieza usada:
-                        # if selected_piece_id in AVAILABLE_SHAPES:
-                        #     rem_at = AVAILABLE_SHAPES.index(selected_piece_id)
-                        #     AVAILABLE_SHAPES.pop(rem_at)
-                        #     if rem_at <= selected_piece_idx:
-                        #         selected_piece_idx = max(0, selected_piece_idx - 1)
+
 
                         engine.advance_turn()
                         nuevo_pid = engine.get_current_player()
                         print("jugador ahora:", nuevo_pid)
 
-                        # Recalcular SOLO para el nuevo jugador
+                        # Recalcular piezas para el jugador
                         AVAILABLE_SHAPES = build_available_shapes(nuevo_pid)
                         if AVAILABLE_SHAPES:
                             selected_piece_idx = 0
