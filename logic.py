@@ -2,9 +2,9 @@ GRID_SIZE = 20
 
 def make_board():
     board = []
-    for i in range(20):     # repetir 20 veces las filas
+    for i in range(GRID_SIZE):     # repetir 20 veces las filas
         fila = []
-        for j in range(20): # repetir 20 veces las columnas
+        for j in range(GRID_SIZE): # repetir 20 veces las columnas
             fila.append(-1) # agregar -1 en cada celda
         board.append(fila)
     #print(board)
@@ -201,18 +201,18 @@ def all_orientations(shape):
     for _ in range(4):
         orientations.add(frozenset(base))
         base = rotate(base)
-    print("A", len(orientations))
+    #print("A", len(orientations))
 
     ref = reflectX(orig)
     for _ in range(4):
         orientations.add(frozenset(ref))
         ref = rotate(ref)
     lista = [set(fs) for fs in orientations]
-    print("TOTAL", len(orientations))
+    #print("TOTAL", len(orientations))
 
     return lista
 
-print(len(all_orientations(L4)))
+#print(len(all_orientations(L4)))
 #place(b, (0,0), shapes[2], 1)
 # place(b, (0,1), reflectX(shapes[2]), 1)
 
