@@ -17,7 +17,6 @@ board = engine.board
 PIECE_IDS = list(shapes.keys())  # o un orden específico que tú decidas
 #selected_piece_id = "I3"         # elige una inicial válida
 
-#selected_piece_idx = PIECE_IDS.index(selected_piece_id)
 
 
 #orientaciones = all_orientations(shapes[selected_piece_id])
@@ -135,6 +134,113 @@ orientaciones = all_orientations(shapes[selected_piece_id]) if selected_piece_id
 orient_idx = 0
 
 
+# --- FIN DE PARTIDA / GANADOR ---
+
+def player_can_move(pid, board):
+
+    remaining = build_available_shapes(pid)
+    if not remaining:
+        return False
+
+    first_flag = engine.is_first_move(pid)
+
+    # escanea el tablero entero
+    for piece_id in remaining: #cada pieza
+        orients = all_orientations(shapes[piece_id])
+        for orient in orients:
+            for y in range(GRID_SIZE):
+                for x in range(GRID_SIZE):
+                    cell = (x, y)
+                    if can_place(board, cell, orient, pid, first_move=first_flag):
+                        print(f" judada disponible en {cell} con la orientacion {orient_idx} con la pieza {piece_id}")
+                        return True
+    return False
+
+
+def compute_scores(board):
+
+    #cuenta celdas ocupadas por cada jugador en el tablero
+
+    scores = {}
+    for pid in engine.players:
+        scores[pid] = 0
+
+    for y in range(GRID_SIZE):
+        for x in range(GRID_SIZE):
+            val = board[y][x]
+            if val in scores:
+                scores[val] += 1
+    return scores
+
+
+def show_game_over_banner(pantalla, font, text):
+
+    W, H = pantalla.get_size()
+    title_font = pygame.font.SysFont(None, 48)
+    msg_surf = title_font.render("GAME OVER", True, (0, 0, 0))
+    sub_surf = font.render(text, True, (0, 0, 0))
+
+    overlay_local = pygame.Surface((W, 120), pygame.SRCALPHA)
+    overlay_local.fill((255, 255, 255, 220))
+    pantalla.blit(overlay_local, (0, H//2 - 60))
+
+    pantalla.blit(msg_surf, ( (W - msg_surf.get_width())//2, H//2 - 50 ))
+    pantalla.blit(sub_surf, ( (W - sub_surf.get_width())//2, H//2 + 10 ))
+
+
+def advance_to_next_player_or_end():
+
+    global AVAILABLE_SHAPES, selected_piece_idx, selected_piece_id, orientaciones, orient_idx, consecutive_passes
+
+    checked = 0
+    while checked < len(engine.players):
+        pid_now = engine.get_current_player()
+
+        if player_can_move(pid_now, board):
+            # reset de pases y preparar su selección
+            consecutive_passes = 0
+            AVAILABLE_SHAPES = build_available_shapes(pid_now)
+            if AVAILABLE_SHAPES:
+                selected_piece_idx = 0
+                selected_piece_id  = AVAILABLE_SHAPES[selected_piece_idx]
+                orientaciones = all_orientations(shapes[selected_piece_id])
+                orient_idx = 0
+            else:
+                # piezas agotadas
+                consecutive_passes += 1
+                engine.advance_turn()
+                checked += 1
+                continue
+            return (False, None)
+        else:
+            # no tiene jugadas pase automático
+            consecutive_passes += 1
+            print(f"jugador {pid_now} no tiene jugadas consecutivos={consecutive_passes}")
+            engine.advance_turn()
+            checked += 1
+
+        # todos pasan seguido
+        if consecutive_passes >= len(engine.players):
+            # calcular ganador
+            scores = compute_scores(board)
+            # máximo puntaje
+            best_pid = max(scores, key=scores.get)
+            # chequear si hay empate
+            best_score = scores[best_pid]
+            empatados = [p for p, sc in scores.items() if sc == best_score]
+            if len(empatados) > 1:
+                msg = f"Empate con {best_score} casillas: " + ", ".join([f'P{p}' for p in empatados])
+            else:
+                msg = f"Gana P{best_pid} con {best_score} casillas"
+            return (True, msg)
+
+    return (False, None)
+
+consecutive_passes = 0
+game_over = False
+game_over_msg = None
+
+
 while running:
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -177,17 +283,23 @@ while running:
                             selected_piece_id = cand_id
                             orientaciones = all_orientations(shapes[selected_piece_id])
                             orient_idx = 0
-                            print(f"id {selected_piece_id} (idx {selected_piece_idx})")
+                            #print(f"id {selected_piece_id} (idx {selected_piece_idx})")
                             break
                         turns += 1
-
-
 
                     if turns >= len(AVAILABLE_SHAPES):
                         selected_piece_idx = -1
                         selected_piece_id = None
                         orientaciones = []
                         orient_idx = 0
+            #elif event.key == K_p:
+             #   # el jugador actual decide pasar manualmente
+              #  pid_now = engine.get_current_player()
+               # print(f"[INFO] Jugador {pid_now} presiona PASAR (P).")
+                #consecutive_passes += 1
+                #engine.advance_turn()
+                #is_over, msg = advance_to_next_player_or_end()
+
 
         #
         elif event.type == MOUSEBUTTONDOWN and event.button == 1:
@@ -200,31 +312,27 @@ while running:
 
                 if not engine.has_used_piece(pid, selected_piece_id):
                     if place(board, cell, pieza, pid, first_move=engine.is_first_move(pid)):
+
                         engine.mark_piece_used(pid, selected_piece_id)
+
+                        # reinicia pases siempre que alguien jugo
+                        consecutive_passes = 0
                         if engine.is_first_move(pid):
                             engine.mark_first_move_done(pid)
 
-
-
+                        # cambia de turno y resuelve auto-pases o fin
                         engine.advance_turn()
-                        nuevo_pid = engine.get_current_player()
-                        print("jugador ahora:", nuevo_pid)
+                        is_over, msg = advance_to_next_player_or_end()
+                        if is_over:
+                            game_over = True
+                            game_over_msg = msg
+                            print("GAME OVER", msg)
 
-                        # Recalcular piezas para el jugador
-                        AVAILABLE_SHAPES = build_available_shapes(nuevo_pid)
-                        if AVAILABLE_SHAPES:
-                            selected_piece_idx = 0
-                            selected_piece_id = AVAILABLE_SHAPES[selected_piece_idx]
-                            orientaciones = all_orientations(shapes[selected_piece_id])
-                            orient_idx = 0
-                        else:
-                            selected_piece_idx = -1
-                            selected_piece_id = None
-                            orientaciones = []
+
                     else:
-                        print(f"[WARN] Movimiento inválido para P{pid} en {cell} con pieza {selected_piece_id}")
+                        print(f" movimiento invalido para P{pid} en {cell} con pieza {selected_piece_id}")
                 else:
-                    print(f"[INFO] Jugador {pid} ya usó la pieza {selected_piece_id}")
+                    print(f"jugador {pid} ya uso la pieza {selected_piece_id}")
 
     pantalla.fill(blanco)
     for y in range(GRID_SIZE):
@@ -252,9 +360,14 @@ while running:
             pid, engine.is_first_move(pid),
             GRID_SIZE, CELL, MARGIN
         )
+
+    if game_over:
+        show_game_over_banner(pantalla, font, game_over_msg)
     pygame.display.flip()
 
     clock.tick(60)
+
+
 
 
 

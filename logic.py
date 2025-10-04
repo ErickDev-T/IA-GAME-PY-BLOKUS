@@ -1,4 +1,4 @@
-GRID_SIZE = 30
+GRID_SIZE = 20
 
 def make_board():
     board = []
