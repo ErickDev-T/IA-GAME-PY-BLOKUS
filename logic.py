@@ -192,7 +192,7 @@ def reflectY(shape):
     #print(reflected)
     # normalizar para que no queden negativos y llevar a 0,0
     return normalize(reflected)
-L4 = {(0,0), (0,1), (0,2), (1,0)}
+#L4 = {(0,0), (0,1), (0,2), (1,0)}
 
 def all_orientations(shape):
     orig = normalize(shape)
@@ -213,7 +213,7 @@ def all_orientations(shape):
     return lista
 
 #print(len(all_orientations(L4)))
-#place(b, (0,0), shapes[2], 1)
+#=place(b, (0,0), shapes[L4], 1)
 # place(b, (0,1), reflectX(shapes[2]), 1)
 
 # place(b, (4,1), reflectY(shapes[2]), 1)
@@ -222,18 +222,8 @@ def all_orientations(shape):
 # place(b, (8,5), rotate(rotate(rotate(shapes[2]))), 1)
 
 
-
-
-
-
-
-
-
-
-
-
 #print(reflect(shapes[2]))
-#place(b, (0,0), shapes[1], 1, first_move=True)
+#place(b, (0,0), shapes[L4], 1, first_move=True)
 #place(b, (GRID_SIZE-1, GRID_SIZE-1), shapes[0], 2, first_move=True)
 #place(b, (0, GRID_SIZE-1), shapes[0], 3, first_move=True)
 #place(b, (GRID_SIZE-1, 0), shapes[0], 4, first_move=True)
@@ -260,4 +250,4 @@ def all_orientations(shape):
 
 
 
-#print_board(b)
+print_board(b)
