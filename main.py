@@ -27,6 +27,41 @@ MARGIN = 2
 WIDTH  = GRID_SIZE * (CELL + MARGIN) + MARGIN + 20
 HEIGHT = GRID_SIZE * (CELL + MARGIN) + MARGIN +20
 
+player_roles = {}  # Diccionario que indica si un jugador es humano o IA
+
+print("Selecciona modo de juego:")
+print("1 - Jugador vs Jugador (PvP)")
+print("2 - Jugador vs Computadora (PvE)")
+print("3 - Computadora vs Computadora (IA vs IA) AUN DESARROLLADA")
+modo_input = input("Opción: ").strip()
+
+if modo_input == "1":
+    MODO = "PVP"
+    player_roles = {1: "Jugador 1", 2: "Jugador 2"}
+    ai = None
+
+elif modo_input == "2":
+    MODO = "PVE"
+    player_roles = {1: "Jugador", 2: "IA"}
+    from ai import AIPlayer
+    ai = AIPlayer(player_id=2, engine=engine)
+
+# elif modo_input == "3":
+#     MODO = "IAvIA"
+#     player_roles = {1: "IA 1", 2: "IA 2"}
+#     from ai import AIPlayer
+#     ai1 = AIPlayer(player_id=1, engine=engine)
+#     ai2 = AIPlayer(player_id=2, engine=engine)
+#     ai = None  # solo para no romper compatibilidad
+else:
+    print("Opción inválida. Se usará PvP por defecto.")
+    MODO = "PVP"
+    player_roles = {1: "Jugador 1", 2: "Jugador 2"}
+    ai = None
+
+
+
+
 pygame.init()
 font = pygame.font.SysFont(None, 20)
 pygame.display.set_caption("Blokus")
@@ -213,7 +248,7 @@ def advance_to_next_player_or_end():
                 continue
             return (False, None)
         else:
-            # no tiene jugadas pase automático
+            # no tiene jugadas pase automatico
             consecutive_passes += 1
             print(f"jugador {pid_now} no tiene jugadas consecutivos={consecutive_passes}")
             engine.advance_turn()
@@ -231,7 +266,20 @@ def advance_to_next_player_or_end():
             if len(empatados) > 1:
                 msg = f"Empate con {best_score} casillas: " + ", ".join([f'P{p}' for p in empatados])
             else:
-                msg = f"Gana P{best_pid} con {best_score} casillas"
+                best_pid = max(scores, key=scores.get)
+                best_score = scores[best_pid]
+                empatados = [p for p, sc in scores.items() if sc == best_score]
+
+                def nombre_jugador(pid):
+                    return player_roles.get(pid, f"P{pid}")
+
+                if len(empatados) > 1:
+                    nombres = [nombre_jugador(p) for p in empatados]
+                    msg = f"Empate con {best_score} casillas entre " + " y ".join(nombres)
+                else:
+                    ganador = nombre_jugador(best_pid)
+                    msg = f"Gana {ganador} con {best_score} casillas"
+
             return (True, msg)
 
     return (False, None)
@@ -314,7 +362,7 @@ while running:
                     if place(board, cell, pieza, pid, first_move=engine.is_first_move(pid)):
 
                         engine.mark_piece_used(pid, selected_piece_id)
-
+                        AVAILABLE_SHAPES = build_available_shapes(pid)
                         # reinicia pases siempre que alguien jugo
                         consecutive_passes = 0
                         if engine.is_first_move(pid):
@@ -323,6 +371,33 @@ while running:
                         # cambia de turno y resuelve auto-pases o fin
                         engine.advance_turn()
                         is_over, msg = advance_to_next_player_or_end()
+
+                        # --- Turno automático de la IA (si aplica) ---
+                        if MODO == "PVE":
+                            pid_now = engine.get_current_player()
+                            if pid_now == 2 and not game_over:
+                                print("IA Pensando ...")
+                                ai_move = ai.get_move()
+
+                                if ai_move:
+                                    piece_id, orient, coord = ai_move
+                                    first_flag = engine.is_first_move(pid_now)
+
+                                    if place(board, coord, orient, pid_now, first_move=first_flag):
+                                        engine.mark_piece_used(pid_now, piece_id)
+                                        AVAILABLE_SHAPES = build_available_shapes(pid_now)
+                                        if first_flag:
+                                            engine.mark_first_move_done(pid_now)
+
+                                        print(f"IA jugo la pieza {piece_id} en {coord}")
+                                        engine.advance_turn()
+                                        is_over, msg = advance_to_next_player_or_end()
+                                        if is_over:
+                                            game_over = True
+                                            game_over_msg = msg
+                                else:
+                                    print("IA No encontro jugada valida.")
+
                         if is_over:
                             game_over = True
                             game_over_msg = msg
