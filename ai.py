@@ -2,14 +2,19 @@ import time
 from copy import deepcopy
 from logic import can_place, place, all_orientations, shapes, GRID_SIZE
 
-class AIPlayer:
-    def __init__(self, player_id, engine, max_time=5, max_depth=2):
+#algoritmo Minimax con poda alfa-beta
+class AIMinmax:
+    def __init__(self, player_id, engine, max_time=10, max_depth=2):
 
         self.id = player_id
         self.engine = engine
         self.max_time = max_time
         self.max_depth = max_depth
-        self.total_nodes_expanded = 0
+
+        self.total_nodes_expanded = 0  # nodos en la jugada actual
+        self.total_nodes_game = 0  # nodos acumulados en toda la partida
+        self.total_time_game = 0.0  # tiempo acumulado total
+        self.turns_played = 0  # cuántos turnos ha jugado
 
     # FUNCION PRINCIPAL ELEGIR JUGADA
     def get_move(self):
@@ -55,13 +60,22 @@ class AIPlayer:
         end_time = time.time()
         elapsed = end_time - start_time
 
-        print(f"\n[IA{self.id}] Mejor valor: {best_value:.2f}")
-        print(f"[IA{self.id}] Nodos expandidos: {self.total_nodes_expanded}")
-        print(f"[IA{self.id}] Tiempo de ejecución: {elapsed:.2f} s\n")
+        # Acumular estadísticas globales
+        self.total_nodes_game += self.total_nodes_expanded
+        self.total_time_game += elapsed
+        self.turns_played += 1
+
+        # Mostrar estadísticas del turno y acumuladas
+        print(f"\n[IA{self.id}] --- TURNO {self.turns_played} ---")
+        print(f"Mejor valor: {best_value:.2f}")
+        print(f"Nodos explorados en este turno: {self.total_nodes_expanded}")
+        print(f"Tiempo del turno: {elapsed:.2f} s")
+        print(f"Nodos totales acumulados: {self.total_nodes_game}")
+        print(f"Tiempo total acumulado: {self.total_time_game:.2f} s\n")
 
         return best_move
 
-    # ALGORITMO MINIMAX CON PODA ALFA-BETA
+    # ALGORITMO MINIMAX CON PODA ALFA-BETA ---- búsqueda adversarial  maximizing =  turno
     def minimax(self, board, depth, alpha, beta, maximizing, start_time):
         self.total_nodes_expanded += 1
         # detener si se acaba el tiempo o la profundidad
@@ -71,10 +85,14 @@ class AIPlayer:
         if maximizing:
             max_eval = float("-inf")
             first_move = self.engine.is_first_move(self.id)
+
+            # devuelve ["P1", "P2", "P3"]
             shapes_left = [
                 sid for sid in self.engine.shapes.keys()
                 if not self.engine.has_used_piece(self.id, sid)
             ]
+
+            #explora todas las jugadas posibles
             for piece_id in shapes_left:
                 for orient in all_orientations(shapes[piece_id]):
                     for y in range(GRID_SIZE):
@@ -84,8 +102,13 @@ class AIPlayer:
                                 temp = deepcopy(board)
                                 place(temp, coord, orient, self.id, first_move)
                                 value = self.minimax(temp, depth + 1, alpha, beta, False, start_time)
+
+                                #mejor valor que la IA ha encontrado hasta ahora entre todas las opciones posibles
                                 max_eval = max(max_eval, value)
+
+                                #el mejor valos que tiene hasta ahora puede garantizar hasta este punto si encuentra un valor mejor lo actualiza
                                 alpha = max(alpha, value)
+                                #podar
                                 if beta <= alpha:
                                     break
             return max_eval
@@ -202,7 +225,13 @@ class AIPlayer:
         #score = (my_cells * 3) - (opp_cells * 2) + (empty_cells * 0.1) + (corners * 2.5)
 
         # 5 heuristicas
-        score = ((my_cells * 3) - (opp_cells * 2)+ (empty_cells * 0.1) + (corners * 2.5) - (avg_piece_size * 1.5))  # penaliza tener piezas grandes pendientes
+        score = (
+                (my_cells * 2)  # dominio del tablero: clave
+                - (opp_cells * 3)  # control del rival
+                + (empty_cells * 0.5)  # ligero incentivo a espacios libres
+                + (corners * 1)  # movilidad ma o meno
+                - (avg_piece_size * 1.5)  # penaliza piezas grandes guardadas
+        )
 
 
         return score
