@@ -4,7 +4,7 @@ from logic import make_board, place, can_place, shapes, GRID_SIZE, rotate, refle
 from engine import GameEngine
 
 
-engine = GameEngine([1, 2], shapes)  # por ejemplo, 2 jugadores
+engine = GameEngine([1, 2], shapes)
 board = engine.board
 
 #NUM_PLAYERS = 4
@@ -26,6 +26,69 @@ CELL = 25
 MARGIN = 2
 WIDTH  = GRID_SIZE * (CELL + MARGIN) + MARGIN + 20
 HEIGHT = GRID_SIZE * (CELL + MARGIN) + MARGIN +20
+
+player_roles = {}
+
+print("Selecciona modo de juego:")
+print("1 - Jugador vs Jugador (PvP)")
+print("2 - Jugador vs Computadora (PvE)")
+print("3 - AI (Minimax) vs IA (Minimax)")
+print("4 - AI (Minimax) vs IA (Random)")
+print("5 - AI (Minimax) vs IA (Greedy)")
+print("6 - AI (Minimax) vs la peor IA")
+
+modo_input = input("Opción: ").strip()
+
+if modo_input == "1":
+    MODO = "PVP"
+    player_roles = {1: "Jugador 1", 2: "Jugador 2"}
+    ai = None
+
+elif modo_input == "2":
+    MODO = "PVE"
+    player_roles = {1: "Jugador", 2: "IA"}
+    from ai import AIMinmax
+    ai = AIMinmax(player_id=2, engine=engine)
+
+elif modo_input == "3":
+    MODO = "IAvIA"
+    player_roles = {1: "IA 1", 2: "IA 2"}
+    from ai import AIMinmax
+    ai1 = AIMinmax(player_id=1, engine=engine)
+    ai2 = AIMinmax(player_id=2, engine=engine)
+    ai = None  # solo para no romper compatibilidad
+
+elif modo_input == "4":
+    MODO = "IAvRandom"
+    from ai import AIMinmax
+    from AI_random import RandomAI
+
+    player_roles = {1: "IA Minimax", 2: "IA Random"}
+    ai1 = AIMinmax(player_id=1, engine=engine)  # IA con Minimax
+    ai2 = RandomAI(player_id=2, engine=engine)  # IA aleatoria
+
+elif modo_input == "5":
+    MODO = "IAvGreedy"
+    from ai import AIMinmax          # tu IA con Minimax
+    from AI_greedy import GreedyAI   # IA greddy
+    player_roles = {1: "IA Minimax", 2: "IA Greedy"}
+    ai1 = AIMinmax(player_id=1, engine=engine)
+    ai2 = GreedyAI(player_id=2, engine=engine)
+
+elif modo_input == "6":
+    MODO = "IAvWorst"
+    from ai import AIMinmax
+    from IA_peor import WorstPlayer
+    player_roles = {1: "IA Minimax", 2: "IA Peor"}
+    ai1 = AIMinmax(player_id=1, engine=engine)     # IA con Minimax
+    ai2 = WorstPlayer(player_id=2)                 # IA que toma peor
+
+else:
+    print("Opción no valida. PvP por defecto.")
+    MODO = "PVP"
+    player_roles = {1: "Jugador 1", 2: "Jugador 2"}
+    ai = None
+
 
 pygame.init()
 font = pygame.font.SysFont(None, 20)
@@ -52,12 +115,15 @@ def build_available_shapes(pid):
     return available_shapes
 
 
-def draw_hud(pantalla, font, engine, selected_piece_id, selected_piece_idx, total_pieces, orient_idx, total_orients):
+def draw_hud(pantalla, font, engine, selected_piece_id, selected_piece_idx, total_pieces, orient_idx, total_orients, player_roles):
     current_player = engine.get_current_player()
-    texto = f"P{current_player}  |  Pieza: {selected_piece_id} ({selected_piece_idx+1}/{total_pieces})  |  Orient: {orient_idx+1}/{total_orients}"
+    nombre_jugador = player_roles.get(current_player, f"P{current_player}")
+
+    texto = f"{nombre_jugador}  |  Pieza: {selected_piece_id} ({selected_piece_idx+1}/{total_pieces})  |  Orient: {orient_idx+1}/{total_orients}"
     surf = font.render(texto, True, (0, 0, 0))
     W, H = pantalla.get_size()
     pantalla.blit(surf, (6, H - surf.get_height() - 6))
+
 
 
 
@@ -134,7 +200,6 @@ orientaciones = all_orientations(shapes[selected_piece_id]) if selected_piece_id
 orient_idx = 0
 
 
-# --- FIN DE PARTIDA / GANADOR ---
 
 def player_can_move(pid, board):
 
@@ -197,7 +262,7 @@ def advance_to_next_player_or_end():
         pid_now = engine.get_current_player()
 
         if player_can_move(pid_now, board):
-            # reset de pases y preparar su selección
+            # reset de pases y preparar la seleccion
             consecutive_passes = 0
             AVAILABLE_SHAPES = build_available_shapes(pid_now)
             if AVAILABLE_SHAPES:
@@ -213,7 +278,7 @@ def advance_to_next_player_or_end():
                 continue
             return (False, None)
         else:
-            # no tiene jugadas pase automático
+            # no tiene jugadas pase automatico
             consecutive_passes += 1
             print(f"jugador {pid_now} no tiene jugadas consecutivos={consecutive_passes}")
             engine.advance_turn()
@@ -225,16 +290,35 @@ def advance_to_next_player_or_end():
             scores = compute_scores(board)
             # máximo puntaje
             best_pid = max(scores, key=scores.get)
-            # chequear si hay empate
             best_score = scores[best_pid]
+
             empatados = [p for p, sc in scores.items() if sc == best_score]
+
+            # función auxiliar para nombres de jugadores
+            def nombre_jugador(pid):
+                return player_roles.get(pid, f"P{pid}")
+
             if len(empatados) > 1:
-                msg = f"Empate con {best_score} casillas: " + ", ".join([f'P{p}' for p in empatados])
+                nombres = [nombre_jugador(p) for p in empatados]
+                msg = f"Empate con {best_score} casillas entre " + " y ".join(nombres)
+
+
+
             else:
-                msg = f"Gana P{best_pid} con {best_score} casillas"
+                ganador = nombre_jugador(best_pid)
+                # mostrar puntajes de los demás
+                oponentes = [p for p in scores if p != best_pid]
+                detalle_oponentes = ", ".join(
+                    [f"{nombre_jugador(p)} {scores[p]} pts" for p in oponentes]
+                )
+                msg = f"Gana {ganador} con {best_score} casillas"
+                if detalle_oponentes:
+                    msg += f"  (oponente: {detalle_oponentes})"
+
             return (True, msg)
 
     return (False, None)
+
 
 consecutive_passes = 0
 game_over = False
@@ -243,6 +327,8 @@ game_over_msg = None
 
 while running:
     for event in pygame.event.get():
+
+
         if event.type == QUIT:
             running = False
 
@@ -314,7 +400,7 @@ while running:
                     if place(board, cell, pieza, pid, first_move=engine.is_first_move(pid)):
 
                         engine.mark_piece_used(pid, selected_piece_id)
-
+                        AVAILABLE_SHAPES = build_available_shapes(pid)
                         # reinicia pases siempre que alguien jugo
                         consecutive_passes = 0
                         if engine.is_first_move(pid):
@@ -323,6 +409,57 @@ while running:
                         # cambia de turno y resuelve auto-pases o fin
                         engine.advance_turn()
                         is_over, msg = advance_to_next_player_or_end()
+
+                        # --- Turno automático de la IA ---
+                        if MODO == "PVE":
+                            pid_now = engine.get_current_player()
+                            if pid_now == 2 and not game_over:
+                                print("IA Pensando ...")
+                                ai_move = ai.get_move()
+
+                                if ai_move:
+                                    piece_id, orient, coord = ai_move
+                                    first_flag = engine.is_first_move(pid_now)
+
+                                    if place(board, coord, orient, pid_now, first_move=first_flag):
+                                        engine.mark_piece_used(pid_now, piece_id)
+                                        AVAILABLE_SHAPES = build_available_shapes(pid_now)
+                                        if first_flag:
+                                            engine.mark_first_move_done(pid_now)
+
+                                        print(f"IA jugo la pieza {piece_id} en {coord}")
+                                        AVAILABLE_SHAPES = build_available_shapes(1)  # refresca para jugdro 1
+                                        if AVAILABLE_SHAPES:
+                                            selected_piece_idx = 0
+                                            selected_piece_id = AVAILABLE_SHAPES[selected_piece_idx]
+                                            orientaciones = all_orientations(shapes[selected_piece_id])
+                                            orient_idx = 0
+
+                                        engine.advance_turn()
+                                        is_over, msg = advance_to_next_player_or_end()
+
+                                        if is_over:
+                                            game_over = True
+                                            game_over_msg = msg
+                                            print("GAME OVER", msg)
+
+                                            print(f"\n=== RESUMEN FINAL IA{ai.id} ===")
+                                            print(f"Turnos jugados: {ai.turns_played}")
+                                            print(f"Nodos totales explorados: {ai.total_nodes_game}")
+                                            print(f"Tiempo total de cálculo: {ai.total_time_game:.2f} s")
+                                            if ai.turns_played > 0:
+                                                prom_t = ai.total_time_game / ai.turns_played
+                                                prom_n = ai.total_nodes_game / ai.turns_played
+                                                print(f"Promedio por turno → {prom_t:.2f}s | {prom_n:.0f} nodos")
+                                            print("=====================================\n")
+
+                                        else:
+                                            print("IA no encontró jugada válida.")
+
+
+
+
+
                         if is_over:
                             game_over = True
                             game_over_msg = msg
@@ -333,6 +470,240 @@ while running:
                         print(f" movimiento invalido para P{pid} en {cell} con pieza {selected_piece_id}")
                 else:
                     print(f"jugador {pid} ya uso la pieza {selected_piece_id}")
+
+    # modo IAvIA
+    if MODO == "IAvIA" and not game_over:
+        # dibuja el tablero
+        pantalla.fill(blanco)
+        for y in range(GRID_SIZE):
+            for x in range(GRID_SIZE):
+                val = board[y][x]
+                color = color_of(val)
+                rx = x * (CELL + MARGIN) + MARGIN
+                ry = y * (CELL + MARGIN) + MARGIN
+                pygame.draw.rect(pantalla, color, (rx, ry, CELL, CELL))
+        pygame.display.flip()
+
+        pygame.time.wait(1)  # pequeña pausa entre turnos
+
+        pid_now = engine.get_current_player()
+        current_ai = ai1 if pid_now == 1 else ai2
+        print(f"IA{pid_now} pensando ...")
+
+        ai_move = current_ai.get_move()
+        if ai_move:
+            piece_id, orient, coord = ai_move
+            first_flag = engine.is_first_move(pid_now)
+
+            if place(board, coord, orient, pid_now, first_move=first_flag):
+                engine.mark_piece_used(pid_now, piece_id)
+                if first_flag:
+                    engine.mark_first_move_done(pid_now)
+
+                print(f"IA{pid_now} jugó la pieza {piece_id} en {coord}")
+
+                engine.advance_turn()
+                is_over, msg = advance_to_next_player_or_end()
+                if is_over:
+                    game_over = True
+                    game_over_msg = msg
+                    print("GAME OVER", msg)
+
+                    print("\n===== RESUMEN FINAL DE PARTIDA =====")
+                    for ai_bot in [ai1, ai2]:
+                        print(f"\n[IA{ai_bot.id}]")
+                        print(f"Turnos jugados: {ai_bot.turns_played}")
+                        print(f"Nodos totales explorados: {ai_bot.total_nodes_game}")
+                        print(f"Tiempo total de cálculo: {ai_bot.total_time_game:.2f} s")
+                        if ai_bot.turns_played > 0:
+                            prom_t = ai_bot.total_time_game / ai_bot.turns_played
+                            prom_n = ai_bot.total_nodes_game / ai_bot.turns_played
+                            print(f"Promedio por turno → {prom_t:.2f}s | {prom_n:.0f} nodos")
+                    print("=====================================\n")
+
+        else:
+            print(f"IA{pid_now} no encontró jugada válida.")
+            engine.advance_turn()
+            is_over, msg = advance_to_next_player_or_end()
+            if is_over:
+                game_over = True
+                game_over_msg = msg
+                print("GAME OVER", msg)
+
+                print("\n===== RESUMEN FINAL DE PARTIDA =====")
+                for ai_bot in [ai1, ai2]:
+                    print(f"\n[IA{ai_bot.id}]")
+                    print(f"Turnos jugados: {ai_bot.turns_played}")
+                    print(f"Nodos totales explorados: {ai_bot.total_nodes_game}")
+                    print(f"Tiempo total de cálculo: {ai_bot.total_time_game:.2f} s")
+                    if ai_bot.turns_played > 0:
+                        prom_t = ai_bot.total_time_game / ai_bot.turns_played
+                        prom_n = ai_bot.total_nodes_game / ai_bot.turns_played
+                        print(f"Promedio por turno → {prom_t:.2f}s | {prom_n:.0f} nodos")
+                print("=====================================\n")
+
+
+
+
+    elif MODO == "IAvGreedy" and not game_over:
+        pygame.time.wait(600)
+        pid_now = engine.get_current_player()
+        current_ai = ai1 if pid_now == 1 else ai2
+        ai_move = current_ai.get_move()
+        if ai_move:
+            piece_id, orient, coord = ai_move
+            first_flag = engine.is_first_move(pid_now)
+            if place(board, coord, orient, pid_now, first_move=first_flag):
+                engine.mark_piece_used(pid_now, piece_id)
+                if first_flag:
+                    engine.mark_first_move_done(pid_now)
+                print(f"{player_roles[pid_now]} jugó la pieza {piece_id} en {coord}")
+                engine.advance_turn()
+                is_over, msg = advance_to_next_player_or_end()
+                if is_over:
+                    game_over = True
+                    game_over_msg = msg
+                    print("GAME OVER", msg)
+                    print("\n===== RESUMEN FINAL DE PARTIDA =====")
+                    for ai_bot in [ai1, ai2]:
+                        print(f"\n[{player_roles[ai_bot.id]} | IA{ai_bot.id}]")
+                        print(f"Turnos jugados: {ai_bot.turns_played}")
+                        print(f"Nodos totales explorados: {ai_bot.total_nodes_game}")
+                        print(f"Tiempo total de cálculo: {ai_bot.total_time_game:.2f} s")
+
+                        if ai_bot.turns_played > 0:
+                            prom_t = ai_bot.total_time_game / ai_bot.turns_played
+                            prom_n = ai_bot.total_nodes_game / ai_bot.turns_played
+                            print(f"Promedio por turno → {prom_t:.2f}s | {prom_n:.0f} nodos")
+                    print("=====================================\n")
+
+        else:
+            print(f"{player_roles[pid_now]} no encontró jugada válida.")
+            engine.advance_turn()
+            is_over, msg = advance_to_next_player_or_end()
+            if is_over:
+                game_over = True
+                game_over_msg = msg
+                print("GAME OVER", msg)
+                print("\n===== RESUMEN FINAL DE PARTIDA =====")
+                for ai_bot in [ai1, ai2]:
+                    print(f"\n[{player_roles[ai_bot.id]} | IA{ai_bot.id}]")
+                    print(f"Turnos jugados: {ai_bot.turns_played}")
+                    print(f"Nodos totales explorados: {ai_bot.total_nodes_game}")
+                    print(f"Tiempo total de cálculo: {ai_bot.total_time_game:.2f} s")
+                    if ai_bot.turns_played > 0:
+                        prom_t = ai_bot.total_time_game / ai_bot.turns_played
+                        prom_n = ai_bot.total_nodes_game / ai_bot.turns_played
+                        print(f"Promedio por turno → {prom_t:.2f}s | {prom_n:.0f} nodos")
+
+                print("=====================================\n")
+
+
+
+
+
+    elif MODO == "IAvRandom" and not game_over:
+
+        pygame.time.wait(600)
+        pid_now = engine.get_current_player()
+        current_ai = ai1 if pid_now == 1 else ai2
+        ai_move = current_ai.get_move()
+        if ai_move:
+
+            piece_id, orient, coord = ai_move
+            first_flag = engine.is_first_move(pid_now)
+            if place(board, coord, orient, pid_now, first_move=first_flag):
+                engine.mark_piece_used(pid_now, piece_id)
+                if first_flag:
+                    engine.mark_first_move_done(pid_now)
+
+                print(f"{player_roles[pid_now]} jugó la pieza {piece_id} en {coord}")
+
+                engine.advance_turn()
+                is_over, msg = advance_to_next_player_or_end()
+                if is_over:
+
+                    game_over = True
+                    game_over_msg = msg
+                    print("GAME OVER", msg)
+
+                    print("\n===== RESUMEN FINAL DE PARTIDA =====")
+                    for ai_bot in [ai1, ai2]:
+                        print(f"\n[{player_roles[ai_bot.id]} | IA{ai_bot.id}]")
+                        print(f"Turnos jugados: {ai_bot.turns_played}")
+                        print(f"Nodos totales explorados: {ai_bot.total_nodes_game}")
+                        print(f"Tiempo total de cálculo: {ai_bot.total_time_game:.2f} s")
+
+                        if ai_bot.turns_played > 0:
+                            prom_t = ai_bot.total_time_game / ai_bot.turns_played
+                            prom_n = ai_bot.total_nodes_game / ai_bot.turns_played
+                            print(f"Promedio por turno → {prom_t:.2f}s | {prom_n:.0f} nodos")
+                    print("=====================================\n")
+
+
+        else:
+
+            print(f"{player_roles[pid_now]} no encontró jugada válida.")
+            engine.advance_turn()
+            is_over, msg = advance_to_next_player_or_end()
+            if is_over:
+                game_over = True
+                game_over_msg = msg
+                print("GAME OVER", msg)
+                print("\n===== RESUMEN FINAL DE PARTIDA =====")
+
+                for ai_bot in [ai1, ai2]:
+
+                    print(f"\n[{player_roles[ai_bot.id]} | IA{ai_bot.id}]")
+                    print(f"Turnos jugados: {ai_bot.turns_played}")
+                    print(f"Nodos totales explorados: {ai_bot.total_nodes_game}")
+                    print(f"Tiempo total de cálculo: {ai_bot.total_time_game:.2f} s")
+                    if ai_bot.turns_played > 0:
+                        prom_t = ai_bot.total_time_game / ai_bot.turns_played
+                        prom_n = ai_bot.total_nodes_game / ai_bot.turns_played
+                        print(f"Promedio por turno → {prom_t:.2f}s | {prom_n:.0f} nodos")
+                print("=====================================\n")
+
+
+    elif MODO == "IAvWorst" and not game_over:
+        pygame.time.wait(600)
+        pid_now = engine.get_current_player()
+        current_ai = ai1 if pid_now == 1 else ai2
+        pid_now = engine.get_current_player()
+        available = [sid for sid in shapes if not engine.has_used_piece(pid_now, sid)]
+
+        # detecta si la IA usa la firma larga o corta
+        if isinstance(current_ai, type(ai1)):  # o simplemente hasattr
+            ai_move = current_ai.get_move()
+        else:
+            ai_move = current_ai.get_move(board, available, engine.is_first_move(pid_now))
+
+        if ai_move:
+            piece_id, orient, coord = ai_move
+            first_flag = engine.is_first_move(pid_now)
+
+            if place(board, coord, orient, pid_now, first_move=first_flag):
+                engine.mark_piece_used(pid_now, piece_id)
+                if first_flag:
+                    engine.mark_first_move_done(pid_now)
+
+                print(f"{player_roles[pid_now]} jugó la pieza {piece_id} en {coord}")
+                engine.advance_turn()
+                is_over, msg = advance_to_next_player_or_end()
+                if is_over:
+                    game_over = True
+                    game_over_msg = msg
+        else:
+            print(f"IA{pid_now} no encontró jugada válida.")
+            engine.advance_turn()
+            is_over, msg = advance_to_next_player_or_end()
+            if is_over:
+                game_over = True
+                game_over_msg = msg
+                print("GAME OVER", msg)
+
+
+
 
     pantalla.fill(blanco)
     for y in range(GRID_SIZE):
@@ -348,9 +719,7 @@ while running:
     mx, my = pygame.mouse.get_pos()
     pid = engine.get_current_player()
 
-
-
-    draw_hud(pantalla, font, engine, selected_piece_id, selected_piece_idx, len(AVAILABLE_SHAPES), orient_idx, len(orientaciones))
+    draw_hud(pantalla, font, engine, selected_piece_id, selected_piece_idx, len(AVAILABLE_SHAPES), orient_idx,len(orientaciones), player_roles)
     #que se dibuje tod0 en pantalla
 
     if selected_piece_id is not None and orientaciones:
