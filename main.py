@@ -509,7 +509,6 @@ while running:
                     game_over_msg = msg
                     print("GAME OVER", msg)
 
-                    # 🧠 Mostrar resumen final de ambas IAs
                     print("\n===== RESUMEN FINAL DE PARTIDA =====")
                     for ai_bot in [ai1, ai2]:
                         print(f"\n[IA{ai_bot.id}]")
@@ -531,7 +530,6 @@ while running:
                 game_over_msg = msg
                 print("GAME OVER", msg)
 
-                # 🧠 Mostrar resumen final si la partida termina sin movimiento
                 print("\n===== RESUMEN FINAL DE PARTIDA =====")
                 for ai_bot in [ai1, ai2]:
                     print(f"\n[IA{ai_bot.id}]")
@@ -566,7 +564,6 @@ while running:
                     game_over = True
                     game_over_msg = msg
                     print("GAME OVER", msg)
-                    # 🧠 Mostrar resumen final de las IAs involucradas
                     print("\n===== RESUMEN FINAL DE PARTIDA =====")
                     for ai_bot in [ai1, ai2]:
                         print(f"\n[{player_roles[ai_bot.id]} | IA{ai_bot.id}]")
@@ -588,7 +585,6 @@ while running:
                 game_over = True
                 game_over_msg = msg
                 print("GAME OVER", msg)
-                # 🧠 Mostrar resumen final de las IAs si termina por falta de jugadas
                 print("\n===== RESUMEN FINAL DE PARTIDA =====")
                 for ai_bot in [ai1, ai2]:
                     print(f"\n[{player_roles[ai_bot.id]} | IA{ai_bot.id}]")
@@ -676,7 +672,7 @@ while running:
         pid_now = engine.get_current_player()
         available = [sid for sid in shapes if not engine.has_used_piece(pid_now, sid)]
 
-        # Detecta si la IA usa la firma larga o corta
+        # detecta si la IA usa la firma larga o corta
         if isinstance(current_ai, type(ai1)):  # o simplemente hasattr
             ai_move = current_ai.get_move()
         else:

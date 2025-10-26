@@ -10,6 +10,6 @@ class WorstPlayer:
                 for y in range(len(board)):
                     for x in range(len(board[0])):
                         if can_place(board, (x, y), orient, self.id, first_move):
-                            # simplemente devuelve la primera jugada válida (sin criterio)
+                            # devuelve la primera jugada
                             return (pid, orient, (x, y))
         return None

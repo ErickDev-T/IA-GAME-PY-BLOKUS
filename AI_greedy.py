@@ -1,4 +1,4 @@
-#Evalua todas las jugadas posibles y elige la que le da la mejor heuristica ej la que más puntos gana o más casillas ocupa en este turno
+#Evalua todas las jugadas posibles y elige la que le da la mejor heuristica ej la que mas puntos gana o mas casillas ocupa en este turno
 
 from copy import deepcopy
 from logic import can_place, place, all_orientations, shapes, GRID_SIZE

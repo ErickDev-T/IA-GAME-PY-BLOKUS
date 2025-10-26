@@ -226,9 +226,9 @@ class AIMinmax:
 
         # 5 heuristicas
         score = (
-                (my_cells * 2)  # dominio del tablero: clave
-                - (opp_cells * 3)  # control del rival
-                + (empty_cells * 0.5)  # ligero incentivo a espacios libres
+                (my_cells * 0.2)  # que ponga las mas posibles
+                - (opp_cells * 0.3)  # control del rival
+                + (empty_cells * 0.5)  # espacios libres
                 + (corners * 1)  # movilidad ma o meno
                 - (avg_piece_size * 1.5)  # penaliza piezas grandes guardadas
         )
